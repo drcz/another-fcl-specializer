@@ -3,7 +3,7 @@
 (use-modules (grand scheme))
 
 (define variable? symbol?)
-(define (constant? x) (or (boolean? x) (number? x)))
+(define (constant? x) (or (boolean? x) (number? x) (null? x)))
 
 (define (update store variable value)
   (match store
@@ -79,3 +79,53 @@
   
 [e.g. (interpret example-pow '(2 3))  ===> 8]
 
+
+
+(define example-stck
+  '((formula inputs)
+    init
+    (init [stck := inputs]
+          [cmd := (car formula)]
+          [cnt := (cdr formula)]
+          [goto test-cmd])
+    (test-cmd [if (= cmd '+) add test-cmd*])
+    (test-cmd* [if (= cmd '*) mul test-cmd**])
+    (test-cmd** [if (= cmd '-) sub test-cmd***])
+    (test-cmd*** [if (= cmd 'DUP) dup test-cmd****])
+    (test-cmd**** [if (= cmd 'SWAP) swap error])
+    (add [a := (car stck)]
+         [stck := (cdr stck)]
+         [b := (car stck)]
+         [stck := (cdr stck)]
+         [stck := (cons (+ b a) stck)]
+         [goto next])
+    (mul [a := (car stck)]
+         [stck := (cdr stck)]
+         [b := (car stck)]
+         [stck := (cdr stck)]
+         [stck := (cons (* b a) stck)]
+         [goto next])
+    (sub [a := (car stck)]
+         [stck := (cdr stck)]
+         [b := (car stck)]
+         [stck := (cdr stck)]
+         [stck := (cons (- b a) stck)]
+         [goto next])
+    (dup [a := (car stck)]
+         [stck := (cons a stck)]
+         [goto next])
+    (swap [a := (car stck)]
+          [stck := (cdr stck)]
+          [b := (car stck)]
+          [stck := (cdr stck)]
+          [stck := (cons b (cons a stck))]
+          [goto next])
+    (next [if (= cnt ()) halt step])
+    (step [cmd := (car cnt)]
+          [cnt := (cdr cnt)]
+          [goto test-cmd])
+    (halt [return (car stck)])
+    (error [return 'ERROR])))
+
+
+[e.g. (interpret example-stck '((DUP * SWAP DUP * +) (3 4)))  ===> 25]
